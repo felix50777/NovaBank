@@ -1,38 +1,70 @@
-# backend/routes/auth_routes.py
 from flask import Blueprint, request, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+from backend.database.models import db
+from backend.database.models.user import User
 from flask_jwt_extended import create_access_token
 from datetime import timedelta
-from ..database.models.user import User, db
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route("/register", methods=["POST"])
 def register():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        data = request.get_json()
 
-    if User.query.filter_by(username=username).first():
-        return jsonify({"msg": "El usuario ya existe"}), 400
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
 
-    hashed_password = generate_password_hash(password)
-    new_user = User(username=username, password=hashed_password)
-    db.session.add(new_user)
-    db.session.commit()
+        # Validaciones estrictas
+        if not name or not email or not password:
+            return jsonify({"message": "Todos los campos son obligatorios"}), 400
 
-    return jsonify({"msg": "Usuario registrado exitosamente"}), 201
+        if len(password) < 6:
+            return jsonify({"message": "La contraseña debe tener al menos 6 caracteres"}), 400
+
+        if User.query.filter_by(email=email).first():
+            return jsonify({"message": "El correo ya está registrado"}), 409
+
+        # Crear nuevo usuario
+        user = User(name=name, email=email)
+        user.set_password(password)
+
+        db.session.add(user)
+        db.session.commit()
+
+        return jsonify({"message": "Usuario registrado exitosamente"}), 201
+
+    except Exception as e:
+        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    try:
+        data = request.get_json()
 
-    user = User.query.filter_by(username=username).first()
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"msg": "Usuario o contraseña incorrectos"}), 401
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
 
-    access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
-    return jsonify(access_token=access_token, user_id=user.id), 200
+        if not email or not password:
+            return jsonify({"message": "Correo y contraseña son obligatorios"}), 400
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not user.check_password(password):
+            return jsonify({"message": "Correo o contraseña incorrectos"}), 401
+
+        # Crear token válido por 1 hora
+        access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
+
+        return jsonify({
+            "token": access_token,
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500

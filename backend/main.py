@@ -1,33 +1,23 @@
-# backend/main.py
-
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from .config import Config
-from .routes.auth_routes import auth_bp
-from .database.models.user import db  # instancia de SQLAlchemy
+from backend.database.models import db
+from flask_bcrypt import Bcrypt
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)  # cargamos la config desde config.py
+from backend.routes.auth_routes import auth_bp
 
-    db.init_app(app)
-    jwt = JWTManager(app)
+app = Flask(__name__)
+app.config.from_object(Config)
+bcrypt = Bcrypt()
 
-    # Registrar rutas (blueprints)
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+CORS(app)
+db.init_app(app)
+bcrypt.init_app(app)
+JWTManager(app)
 
-    @app.route("/")
-    def index():
-        return {"message": "Bienvenido al Mini Banco Virtual"}
-
-    return app
+# Registrar rutas
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 if __name__ == "__main__":
-    app = create_app()
-
-    # Crear tablas automáticamente al arrancar
-    with app.app_context():
-        db.create_all()
-
     app.run(debug=True)
