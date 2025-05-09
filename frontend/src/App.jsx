@@ -6,9 +6,10 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Services from "./pages/Services";
 import Help from "./pages/Help";
-import Dashboard from "./pages/Dashboard"; // 👈 Nuevo import
+import Dashboard from "./pages/Dashboard";
 
 import Navbar from "./components/Navbar";
+import PrivateRoute from "./components/PrivateRoute"; // 👈 importamos
 
 function App() {
   return (
@@ -23,7 +24,16 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/services" element={<Services />} />
           <Route path="/help" element={<Help />} />
-          <Route path="/dashboard" element={<Dashboard />} /> {/* ✅ Ruta protegida */}
+
+          {/* 🔒 Ruta protegida */}
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

@@ -2,5 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-from .user import User
-from .card import Card  # 👈 importante para que SQLAlchemy lo reconozca
+# Importa los modelos para que SQLAlchemy los registre
+from .client import Client
+from .account import Account
+from .card import Card

@@ -1,7 +1,8 @@
 # backend/database/models/user.py
 from flask_sqlalchemy import SQLAlchemy
 
-from backend.models import db
+from backend.database.models import db
+
 
 
 class User(db.Model):
