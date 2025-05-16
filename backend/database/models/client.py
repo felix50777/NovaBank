@@ -10,7 +10,8 @@ class Client(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     cip = db.Column(db.String(20), unique=True, nullable=False)  # Cédula de Identidad Personal (CIP)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.Text, nullable=False)
+
 
     accounts = db.relationship('Account', backref='client', lazy=True)
     cards = db.relationship('Card', backref='client', lazy=True)

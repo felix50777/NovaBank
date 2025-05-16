@@ -6,29 +6,37 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();  // 👈 Para redirigir después del login
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setLoading(true);
 
     try {
-      // ✅ Llama al login del authService
+      // Limpia sesiones antiguas
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Login API
       const data = await login({ email, password });
 
-      // ✅ Guarda token y user en localStorage (esto simula la sesión)
+      // Guarda sesión
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
       console.log("Login exitoso:", data);
 
-      // ✅ Redirige al dashboard (puedes cambiar la ruta)
+      // Redirige
       navigate("/dashboard");
-
     } catch (error) {
-      const msg = error.response?.data?.message || "Error al iniciar sesión";
+      console.error(error);
+      const msg = error.response?.data?.message || "Credenciales incorrectas";
       setErrorMsg(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,43 +47,57 @@ const Login = () => {
           <span className="text-blue-600">Nova</span>
           <span className="text-purple-600">Bank</span>
         </h1>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {errorMsg && (
             <div className="text-red-500 text-sm text-center">{errorMsg}</div>
           )}
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Correo electrónico
             </label>
-            <input
-              type="email"
-              id="email"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+              <span className="mr-2 text-gray-400">👤</span>
+              <input
+                type="email"
+                id="email"
+                className="w-full focus:outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-1">
               Contraseña
             </label>
-            <input
-              type="password"
-              id="password"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-purple-400">
+              <span className="mr-2 text-gray-400">🔒</span>
+              <input
+                type="password"
+                id="password"
+                className="w-full focus:outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
           </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-purple-600 text-white py-2 rounded-md transition"
+            disabled={loading}
+            className={`w-full ${
+              loading ? "bg-gray-400" : "bg-blue-600 hover:bg-purple-600"
+            } text-white py-2 rounded-md transition`}
           >
-            Iniciar Sesión
+            {loading ? "Iniciando..." : "Iniciar Sesión"}
           </button>
         </form>
+
         <p className="text-sm text-center mt-4">
           ¿No tienes cuenta?{" "}
           <Link to="/register" className="text-blue-600 hover:underline">
@@ -85,6 +107,8 @@ const Login = () => {
       </div>
     </div>
   );
+  
 };
+
 
 export default Login;

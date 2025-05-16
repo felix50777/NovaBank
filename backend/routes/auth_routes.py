@@ -1,13 +1,17 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from datetime import timedelta
+import traceback
+import json
 from backend.database.models import db
-from backend.database.models.client import Client  # Importar el nuevo modelo
+from backend.database.models.client import Client
 from backend.database.models.account import Account
 from backend.database.models.card import Card
-from flask_jwt_extended import create_access_token
-from datetime import timedelta
+
+print(f"Archivo auth_routes.py: {__file__}")  # Agrega esta línea
 
 auth_bp = Blueprint("auth", __name__)
+
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -38,20 +42,18 @@ def register():
             full_name=full_name,
             email=email,
             phone_number=phone_number,
-            cip=cip
+            cip=cip,
         )
         client.set_password(password)
-        
-        
 
         db.session.add(client)
         db.session.commit()
-        
+
         # 🚀 Crear automáticamente una cuenta
         account = Account(
             client_id=client.id,
-            tipo_cuenta="ahorro",
-            balance=0.0
+            account_type="ahorro",
+            balance=0.0,
         )
         db.session.add(account)
         db.session.commit()
@@ -59,13 +61,17 @@ def register():
         return jsonify({"message": "Cliente registrado exitosamente"}), 201
 
     except Exception as e:
-        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
+        error_message = f"Error en el servidor: {str(e)}"
+        print(f"Error en /register: {error_message}")
+        print(traceback.format_exc())
+        return jsonify({"message": error_message}), 500
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
         data = request.get_json()
+        print(f">>> Datos recibidos en /login: {json.dumps(data, indent=2)}")
 
         email = data.get("email", "").strip()
         password = data.get("password", "").strip()
@@ -78,69 +84,121 @@ def login():
         if not client or not client.check_password(password):
             return jsonify({"message": "Correo o contraseña incorrectos"}), 401
 
-        # Crear token válido por 1 hora
-        access_token = create_access_token(identity=client.id, expires_delta=timedelta(hours=1))
-
-        return jsonify({
-            "token": access_token,
-            "client": {
-                "id": client.id,
-                "full_name": client.full_name,
-                "email": client.email,
-                "phone_number": client.phone_number,
-                "cip": client.cip
-            }
-        }), 200
-
-    except Exception as e:
-        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
-    
-    # 🚀 Dashboard del cliente autenticado
-@auth_bp.route("/dashboard", methods=["GET"])
-@jwt_required()
-def dashboard():
-    try:
-        client_id = get_jwt_identity()
-
-        # Buscar cliente
-        client = Client.query.get(client_id)
-        if not client:
-            return jsonify({"message": "Cliente no encontrado"}), 404
-
         # Traer sus cuentas
         accounts = Account.query.filter_by(client_id=client.id).all()
         accounts_data = [
             {
                 "id": account.id,
-                "tipo_cuenta": account.tipo_cuenta,
-                "balance": account.balance
+                "account_type": account.account_type,
+                "balance": account.balance,
             }
             for account in accounts
         ]
+        print(f">>> Datos de las cuentas en /login: {json.dumps(accounts_data, indent=2)}")
 
         # Traer sus tarjetas
         cards = Card.query.filter_by(client_id=client.id).all()
         cards_data = [
             {
                 "id": card.id,
-                "tipo_tarjeta": card.tipo_tarjeta,
-                "numero_tarjeta": card.numero_tarjeta,
-                "marca": card.marca
+                "card_type": card.card_type,
+                "card_number": card.card_number,
+                "provider": card.provider,
             }
             for card in cards
         ]
+        print(f">>> Datos de las tarjetas en /login: {json.dumps(cards_data, indent=2)}")
 
-        return jsonify({
-            "cliente": {
-                "id": client.id,
-                "nombre": client.nombre,
-                "email": client.email,
-                "telefono": client.telefono,
-                "cip": client.cip
-            },
-            "cuentas": accounts_data,
-            "tarjetas": cards_data
-        }), 200
+        # Crear token válido por 1 hora
+        access_token = create_access_token(identity=str(client.id), expires_delta=timedelta(hours=1))  # Convertir client.id a string
+
+        response_data = jsonify(
+            {
+                "token": access_token,
+                "client": {
+                    "id": client.id,
+                    "full_name": client.full_name,
+                    "email": client.email,
+                    "phone_number": client.phone_number,
+                    "cip": client.cip,
+                },
+                "accounts": accounts_data,
+                "cards": cards_data,
+            }
+        )
+        print(f">>> Respuesta de /login: {json.dumps(response_data.json, indent=2)}")
+        return response_data, 200
 
     except Exception as e:
-        return jsonify({"message": f"Error en el servidor: {str(e)}"}), 500
+        error_message = f"Error en el servidor: {str(e)}"
+        print(f"Error en /login: {error_message}")
+        print(traceback.format_exc())
+        return jsonify({"message": error_message}), 500
+
+# 🚀 Dashboard del cliente autenticado
+# 🚀 Dashboard del cliente autenticado
+# 🚀 Dashboard del cliente autenticado
+@auth_bp.route("/dashboard", methods=["GET"])
+@jwt_required()
+def dashboard():
+    try:
+        client_id = get_jwt_identity()
+        print(">>> ID del cliente autenticado:", client_id)
+
+        # Buscar cliente
+        client = Client.query.get(client_id)
+        if not client:
+            print(f">>> Cliente no encontrado con ID: {client_id}")
+            return jsonify({"message": "Cliente no encontrado"}), 404
+
+        print(">>> Datos del cliente:", client.__dict__)
+
+        # Traer sus cuentas
+        accounts = Account.query.filter_by(client_id=client.id).all()
+        accounts_data = [
+            {
+                "id": account.id,
+                "account_type": account.account_type,
+                "balance": account.balance,
+            }
+            for account in accounts
+        ]
+        print(">>> Datos de las cuentas en /dashboard:", json.dumps(accounts_data, indent=2))
+        print(">>> Cuentas:", accounts)
+
+        # Traer sus tarjetas
+        cards = Card.query.filter_by(client_id=client.id).all()
+        cards_data = [
+            {
+                "id": card.id,
+                "card_type": card.card_type,
+                "card_number": card.card_number,
+                "provider": card.provider,
+            }
+            for card in cards
+        ]
+        print(">>> Datos de las tarjetas en /dashboard:", json.dumps(cards_data, indent=2))
+        print(">>> Tarjetas:", cards)
+
+        # Retornar los datos del cliente, cuentas y tarjetas en formato JSON
+        response_data = jsonify(
+            {
+                "client": {
+                    "id": client.id,
+                    "full_name": client.full_name,
+                    "email": client.email,
+                    "phone_number": client.phone_number,
+                    "cip": client.cip,
+                },
+                "accounts": accounts_data,
+                "cards": cards_data,
+            }
+        )
+        print(">>> Respuesta JSON de /dashboard:", json.dumps(response_data.json, indent=2))
+        return response_data, 200
+
+    except Exception as e:
+        error_message = f"Error en el servidor: {str(e)}"
+        print(f"Error en /dashboard: {error_message}")
+        print(traceback.format_exc())
+        return jsonify({"message": error_message}), 500

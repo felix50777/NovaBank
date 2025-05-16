@@ -1,32 +1,38 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { register } from "../services/authService";  // ✅ Usamos la función centralizada
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../services/authService";
 
 const Register = () => {
-  const [name, setName] = useState("");
+  const [full_name, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone_number, setPhoneNumber] = useState("");
+
+  const [cip, setCip] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
-    setSuccessMsg("");
+    setLoading(true);
 
     try {
-      // ✅ Usamos la función de authService
-      const data = await register({ name, email, password });
+      // ✅ Llama al register pasando todos los campos
+      const data = await register({ full_name, email, phone_number, cip, password });
 
       console.log("Registro exitoso:", data);
-      setSuccessMsg("¡Registro exitoso! Ahora puedes iniciar sesión.");
-      setName("");
-      setEmail("");
-      setPassword("");
 
+      // ✅ Redirige al login
+      navigate("/login");
     } catch (error) {
+      console.error(error);
       const msg = error.response?.data?.message || "Error al registrarse";
       setErrorMsg(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,59 +43,114 @@ const Register = () => {
           <span className="text-blue-600">Nova</span>
           <span className="text-purple-600">Bank</span>
         </h1>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {errorMsg && (
             <div className="text-red-500 text-sm text-center">{errorMsg}</div>
           )}
-          {successMsg && (
-            <div className="text-green-500 text-sm text-center">{successMsg}</div>
-          )}
+
+          {/* Nombre */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
+            <label htmlFor="full_name" className="block text-sm font-medium mb-1">
               Nombre completo
             </label>
-            <input
-              type="text"
-              id="name"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+              <span className="mr-2 text-gray-400">👤</span>
+              <input
+                type="text"
+                id="full_name"
+                className="w-full focus:outline-none"
+                value={full_name}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
+            </div>
           </div>
+
+          {/* Correo */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Correo electrónico
             </label>
-            <input
-              type="email"
-              id="email"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+              <span className="mr-2 text-gray-400">📧</span>
+              <input
+                type="email"
+                id="email"
+                className="w-full focus:outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
+
+      {/* Teléfono */}
+<div>
+  <label htmlFor="phone_number" className="block text-sm font-medium mb-1">
+    Número de teléfono
+  </label>
+  <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+    <span className="mr-2 text-gray-400">📱</span>
+    <input
+      type="tel"
+      id="phone_number"
+      className="w-full focus:outline-none"
+      value={phone_number}
+      onChange={(e) => setPhoneNumber(e.target.value)}
+      required
+    />
+  </div>
+</div>
+
+
+          {/* CIP */}
+          <div>
+            <label htmlFor="cip" className="block text-sm font-medium mb-1">
+              CIP (Código de Identificación Personal)
+            </label>
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
+              <span className="mr-2 text-gray-400">🆔</span>
+              <input
+                type="text"
+                id="cip"
+                className="w-full focus:outline-none"
+                value={cip}
+                onChange={(e) => setCip(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Contraseña */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-1">
               Contraseña
             </label>
-            <input
-              type="password"
-              id="password"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-purple-400">
+              <span className="mr-2 text-gray-400">🔒</span>
+              <input
+                type="password"
+                id="password"
+                className="w-full focus:outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
           </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-purple-600 text-white py-2 rounded-md transition"
+            disabled={loading}
+            className={`w-full ${
+              loading ? "bg-gray-400" : "bg-purple-600 hover:bg-blue-600"
+            } text-white py-2 rounded-md transition`}
           >
-            Registrarse
+            {loading ? "Registrando..." : "Registrarse"}
           </button>
         </form>
+
         <p className="text-sm text-center mt-4">
           ¿Ya tienes cuenta?{" "}
           <Link to="/login" className="text-blue-600 hover:underline">
