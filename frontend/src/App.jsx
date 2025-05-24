@@ -7,6 +7,7 @@ import Contact from './pages/Contact';
 import Services from "./pages/Services";
 import Help from "./pages/Help";
 import Dashboard from "./pages/Dashboard";
+import TransferForm from "./pages/TransferForm";
 
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute"; // 👈 importamos
@@ -34,6 +35,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+  path="/transfer"
+  element={
+    <PrivateRoute>
+      <TransferForm />
+    </PrivateRoute>
+  }
+/>
         </Routes>
       </div>
     </Router>
