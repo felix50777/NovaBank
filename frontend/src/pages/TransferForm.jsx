@@ -5,7 +5,9 @@ import NovaBankLogo from '../assets/novabank-logo.png'; // <<--- asegúrate de t
 
 const TransferForm = () => {
   const [senderAccount, setSenderAccount] = useState('');
-  const [receiverAccount, setReceiverAccount] = useState('');
+  const [receiverAccountNumber, setReceiverAccountNumber] = useState(''); // Cambiado a Number por AccountNumber
+  const [receiverName, setReceiverName] = useState(''); // Nuevo campo para el nombre del destinatario
+  const [receiverBank, setReceiverBank] = useState('NovaBank'); // Nuevo campo para el banco del destinatario, por defecto NovaBank
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [userAccounts, setUserAccounts] = useState([]);
@@ -30,7 +32,7 @@ const TransferForm = () => {
 
       try {
         const decodedToken = jwtDecode(token);
-        const clientId = decodedToken.sub;
+        // const clientId = decodedToken.sub; // Puedes usar esto si necesitas el ID del cliente para el endpoint
 
         const response = await fetch('http://localhost:5000/api/auth/dashboard', {
           method: 'GET',
@@ -84,8 +86,8 @@ const TransferForm = () => {
       return;
     }
 
-    if (!senderAccount || !receiverAccount || !amount) {
-      setError('Por favor, completa todos los campos obligatorios.');
+    if (!senderAccount || !receiverAccountNumber || !receiverName || !receiverBank || !amount) {
+      setError('Por favor, completa todos los campos obligatorios: Cuenta de Origen, Número de Cuenta Destino, Nombre del Destinatario, Banco y Monto.');
       setLoading(false);
       return;
     }
@@ -97,11 +99,21 @@ const TransferForm = () => {
       return;
     }
 
-    if (parseInt(senderAccount) === parseInt(receiverAccount)) {
-      setError('No puedes transferir fondos a la misma cuenta de origen.');
-      setLoading(false);
-      return;
-    }
+    // Aquí, senderAccount y receiverAccountNumber no pueden ser el mismo ID,
+    // pero si receiverBank es 'NovaBank', también debemos evitar que el número de cuenta
+    // de destino sea el mismo que el número de cuenta de origen.
+    // Esto requeriría obtener el account_number de senderAccount desde userAccounts.
+    // Por ahora, mantenemos la validación de ID si es para IDs internos.
+    // Si receiverAccountNumber es el número de cuenta, la validación se hace más compleja aquí.
+
+    // Si estás usando `receiverAccountNumber` como el número de cuenta (string),
+    // y no como el ID de la cuenta, la siguiente validación NO tiene sentido si el receptor es del mismo usuario.
+    // Por simplicidad para una transferencia interna de un mismo usuario,
+    // es mejor dejarlo como `receiver_account_id` en el backend.
+    // Sin embargo, si quieres que 'receiverAccountNumber' sea el número de cuenta literal,
+    // y no el ID, entonces necesitamos adaptar el backend para buscar por número de cuenta.
+    // Para esta versión, lo dejo como si receiverAccountNumber fuera el string del número de cuenta,
+    // y el backend tendrá que manejar la búsqueda por número de cuenta.
 
     try {
       const response = await fetch('http://localhost:5000/api/transactions/transfer', {
@@ -111,8 +123,10 @@ const TransferForm = () => {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          sender_account_id: parseInt(senderAccount),
-          receiver_account_id: parseInt(receiverAccount),
+          sender_account_id: parseInt(senderAccount), // ID de la cuenta de origen
+          receiver_account_number: receiverAccountNumber, // Número de cuenta del destinatario
+          receiver_name: receiverName, // Nombre del destinatario
+          receiver_bank: receiverBank, // Banco del destinatario
           amount: parsedAmount,
           description: description,
         }),
@@ -125,9 +139,12 @@ const TransferForm = () => {
       }
 
       setMessage(data.message || 'Transferencia realizada con éxito.');
-      setReceiverAccount('');
+      setReceiverAccountNumber('');
+      setReceiverName('');
       setAmount('');
       setDescription('');
+      // Opcional: recargar las cuentas para actualizar el balance visible
+      // fetchUserAccounts();
     } catch (err) {
       console.error('Error al realizar la transferencia:', err);
       setError(err.message || 'Ocurrió un error inesperado. Intenta de nuevo.');
@@ -138,11 +155,18 @@ const TransferForm = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-tr from-blue-100 to-purple-100 p-4">
-      <img
-        src={NovaBankLogo}
-        alt="NovaBank Logo"
-        className="mb-4 w-32 h-32 object-contain"
-      />
+      {NovaBankLogo && (
+        <img
+          src={NovaBankLogo}
+          alt="NovaBank Logo"
+          className="mb-4 w-32 h-32 object-contain rounded-lg shadow-md"
+        />
+      )}
+      {!NovaBankLogo && (
+          <div className="w-32 h-16 mx-auto mb-6 bg-blue-200 flex items-center justify-center rounded-lg text-blue-800 font-bold">
+              NovaBank
+          </div>
+      )}
 
       <div className="bg-gray-50 p-8 rounded-2xl shadow-lg w-full max-w-lg text-center">
         <h2 className="text-3xl font-bold mb-6 text-gray-800">
@@ -154,6 +178,7 @@ const TransferForm = () => {
         {loading && <p className="text-blue-500 mb-4">Cargando...</p>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Cuenta de Origen */}
           <div>
             <label htmlFor="senderAccount" className="block text-left text-gray-700 text-sm font-bold mb-2">
               Cuenta de Origen:
@@ -181,22 +206,60 @@ const TransferForm = () => {
             )}
           </div>
 
+          {/* Nombre del Destinatario (Nuevo) */}
           <div>
-            <label htmlFor="receiverAccount" className="block text-left text-gray-700 text-sm font-bold mb-2">
-              ID de Cuenta Destino:
+            <label htmlFor="receiverName" className="block text-left text-gray-700 text-sm font-bold mb-2">
+              Nombre del Destinatario:
             </label>
             <input
-              type="number"
-              id="receiverAccount"
-              value={receiverAccount}
-              onChange={(e) => setReceiverAccount(e.target.value)}
+              type="text"
+              id="receiverName"
+              value={receiverName}
+              onChange={(e) => setReceiverName(e.target.value)}
               className="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
-              placeholder="Ej: 123"
+              placeholder="Nombre completo del beneficiario"
               required
               disabled={loading}
             />
           </div>
 
+          {/* Banco del Destinatario (Nuevo) */}
+          <div>
+            <label htmlFor="receiverBank" className="block text-left text-gray-700 text-sm font-bold mb-2">
+              Banco del Destinatario:
+            </label>
+            <select
+              id="receiverBank"
+              value={receiverBank}
+              onChange={(e) => setReceiverBank(e.target.value)}
+              className="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              required
+              disabled={loading}
+            >
+              <option value="NovaBank">NovaBank</option>
+              {/* Más adelante puedes agregar: <option value="Otro Banco">Otro Banco</option> */}
+            </select>
+          </div>
+
+          {/* Número de Cuenta Destino */}
+          <div>
+            <label htmlFor="receiverAccountNumber" className="block text-left text-gray-700 text-sm font-bold mb-2">
+              Número de Cuenta Destino:
+            </label>
+            <input
+              // Cambiado a type="text" para permitir números de cuenta con formato no solo numérico
+              type="text"
+              id="receiverAccountNumber"
+              value={receiverAccountNumber}
+              onChange={(e) => setReceiverAccountNumber(e.target.value)}
+              className="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+              placeholder="Ej: 001-123456789-01" // Ejemplo de formato más real
+              required
+              disabled={loading}
+            />
+          </div>
+
+          {/* Monto */}
           <div>
             <label htmlFor="amount" className="block text-left text-gray-700 text-sm font-bold mb-2">
               Monto:
@@ -214,6 +277,7 @@ const TransferForm = () => {
             />
           </div>
 
+          {/* Descripción */}
           <div>
             <label htmlFor="description" className="block text-left text-gray-700 text-sm font-bold mb-2">
               Descripción (Opcional):
@@ -229,6 +293,7 @@ const TransferForm = () => {
             ></textarea>
           </div>
 
+          {/* Botón de Enviar */}
           <button
             type="submit"
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

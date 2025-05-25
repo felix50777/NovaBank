@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import logo from "../assets/Logo.png";
+import logo from "../assets/novabank-logo.png";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);

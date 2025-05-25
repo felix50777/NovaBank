@@ -8,6 +8,7 @@ import Services from "./pages/Services";
 import Help from "./pages/Help";
 import Dashboard from "./pages/Dashboard";
 import TransferForm from "./pages/TransferForm";
+import PaymentForm from "./pages/PaymentForm";
 
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute"; // 👈 importamos
@@ -26,7 +27,7 @@ function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/help" element={<Help />} />
 
-          {/* 🔒 Ruta protegida */}
+          {/* 🔒 Rutas protegidas */}
           <Route
             path="/dashboard"
             element={
@@ -36,13 +37,21 @@ function App() {
             }
           />
           <Route
-  path="/transfer"
-  element={
-    <PrivateRoute>
-      <TransferForm />
-    </PrivateRoute>
-  }
-/>
+            path="/transfer"
+            element={
+              <PrivateRoute>
+                <TransferForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/payment"
+            element={
+              <PrivateRoute>
+                <PaymentForm />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

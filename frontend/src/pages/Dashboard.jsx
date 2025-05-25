@@ -117,10 +117,13 @@ const Dashboard = () => {
     <span role="img" aria-label="transferir">💸</span>
     <span>Transferir</span>
   </button>
-  <button className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out flex items-center justify-center space-x-2">
-    <span role="img" aria-label="pagar">💳</span>
-    <span>Pagar</span>
-  </button>
+ <button
+  onClick={() => navigate("/payment")}
+  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out flex items-center justify-center space-x-2"
+>
+  <span role="img" aria-label="pagar">💳</span>
+  <span>Pagar</span>
+</button>
   <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out flex items-center justify-center space-x-2">
     <span role="img" aria-label="recargar">⚡</span>
     <span>Recargar</span>
