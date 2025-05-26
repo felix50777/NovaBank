@@ -17,33 +17,22 @@ const AdminDashboard = () => {
 
       if (!token) {
         setError('No hay token de autenticación. Por favor, inicia sesión.');
-        navigate('/admin-login'); // Podrías tener una ruta de login específica para admin
+        navigate('/login'); // Redirige a la página de login general
         setLoading(false);
         return;
       }
 
       try {
         const decodedToken = jwtDecode(token);
-        // Verifica si el usuario es administrador (ajusta según cómo almacenes el rol)
-        // Si tu token tiene 'is_admin' en 'additional_claims':
-        // if (!decodedToken.is_admin) {
-        //   setError('Acceso denegado. Solo administradores pueden ver este panel.');
-        //   navigate('/dashboard'); // Redirige a un dashboard normal si no es admin
-        //   setLoading(false);
-        //   return;
-        // }
-
-        // *** SIMULACIÓN TEMPORAL: Solo para desarrollo ***
-        // Si no tienes 'is_admin' en el token, puedes simularlo con el ID del usuario
-        // OJO: Esto es solo para pruebas. En producción, el rol debe venir del token o DB.
-        if (decodedToken.sub !== 1) { // Asume que el usuario con ID 1 es el administrador
-            setError('Acceso denegado. Solo administradores pueden ver este panel.');
-            navigate('/dashboard'); // Redirige a un dashboard normal si no es admin
-            setLoading(false);
-            return;
+        // <<< INICIO DE CAMBIO: Usar decodedToken.is_admin directamente >>>
+        // Verificar si el usuario es administrador usando el claim 'is_admin' del token
+        if (!decodedToken.is_admin) {
+          setError('Acceso denegado. Solo administradores pueden ver este panel.');
+          navigate('/dashboard'); // Redirige a un dashboard normal si no es admin
+          setLoading(false);
+          return;
         }
-        // ************************************************
-
+        // <<< FIN DE CAMBIO >>>
 
         const response = await fetch('http://localhost:5000/api/admin/accounts', {
           method: 'GET',
@@ -55,17 +44,17 @@ const AdminDashboard = () => {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Error al cargar las cuentas.');
+          throw new Error(errorData.message || 'Error al cargar las cuentas de administración.');
         }
 
         const data = await response.json();
-        setAccounts(data);
+        setAccounts(data); // Asume que el backend devuelve un array de objetos de cuenta
       } catch (err) {
         console.error('Error al cargar las cuentas del administrador:', err);
         setError(err.message || 'No se pudieron cargar las cuentas. Intenta de nuevo.');
         if (err.message.includes('token') || err.message.includes('sesión') || err.message.includes('Acceso denegado')) {
           localStorage.removeItem('token');
-          navigate('/admin-login'); // O a la página de login general
+          navigate('/login'); // Redirige al login si hay problemas de autenticación
         }
       } finally {
         setLoading(false);
@@ -108,7 +97,7 @@ const AdminDashboard = () => {
               <thead className="bg-blue-600 text-white">
                 <tr>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">ID Cuenta</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Cliente ID</th>
+                  <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">ID Cliente</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Número de Cuenta</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Tipo de Cuenta</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Balance</th>

@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, get_jwt 
 from datetime import timedelta
 import traceback
 import json
-import random # Importar random para generar el número de cuenta
-import time   # Importar time para ayudar con la unicidad
+import random 
+import time   
 
 from backend.database.models import db
 from backend.database.models.client import Client
@@ -19,18 +19,13 @@ auth_bp = Blueprint("auth", __name__)
 # Función auxiliar para generar un número de cuenta único de 10 dígitos
 def generate_unique_account_number():
     while True:
-        # Genera un número de 10 dígitos basándose en el tiempo y un número aleatorio
-        # Se usa int(time.time() * 1000) para obtener una base más única y se toma el módulo
-        # para asegurar que el número sea de 10 dígitos, rellenando con ceros a la izquierda.
         account_num = str(int(time.time() * 1000) % 10000000000).zfill(10)
         
-        # Asegurarse de que tenga exactamente 10 dígitos rellenando con ceros si es necesario
         if len(account_num) > 10:
             account_num = account_num[:10]
         elif len(account_num) < 10:
             account_num = account_num.zfill(10)
 
-        # Verificar si el número de cuenta ya existe en la base de datos
         if not Account.query.filter_by(account_number=account_num).first():
             return account_num
 
@@ -49,6 +44,11 @@ def register():
         phone_number = data.get("phone_number", "").strip()
         cip = data.get("cip", "").strip()
         password = data.get("password", "").strip()
+        
+        # <<< INICIO DE REVERSIÓN >>>
+        # Se elimina la lógica temporal de is_admin_request
+        # is_admin_request = data.get("is_admin", False) 
+        # <<< FIN DE REVERSIÓN >>>
 
         # Validaciones de entrada de datos
         if not all([full_name, email, phone_number, cip, password]):
@@ -73,29 +73,29 @@ def register():
             email=email,
             phone_number=phone_number,
             cip=cip,
+            is_admin=False # <--- ¡IMPORTANTE! Vuelve a asignar is_admin como False por defecto
         )
-        client.set_password(password) # Hashea la contraseña
+        client.set_password(password) 
         
         db.session.add(client)
         print(">>> Cliente añadido a la sesión de la base de datos.")
-        db.session.commit() # Guarda el cliente para obtener su ID
+        db.session.commit() 
         print(f">>> Cliente guardado en la base de datos con ID: {client.id}")
 
         # Crear automáticamente una cuenta de ahorro para el nuevo cliente
-        if client.id: # Asegurarse de que el ID del cliente esté disponible
-            new_account_number = generate_unique_account_number() # Genera un número de cuenta único
+        if client.id: 
+            new_account_number = generate_unique_account_number() 
             account = Account(
                 client_id=client.id,
                 account_type="ahorro",
                 balance=0.0,
-                account_number=new_account_number # Asigna el número de cuenta generado
+                account_number=new_account_number 
             )
             db.session.add(account)
             print(">>> Cuenta añadida a la sesión de la base de datos.")
-            db.session.commit() # Guarda la cuenta en la base de datos
+            db.session.commit() 
             print(f">>> Cuenta guardada en la base de datos con ID: {account.id} para el cliente ID: {client.id} y número de cuenta: {account.account_number}")
         else:
-            # Si por alguna razón el client.id no está disponible, revertir y reportar error
             print(">>> ERROR: client.id no disponible después del commit del cliente. No se pudo crear la cuenta.")
             db.session.rollback() 
             return jsonify({"message": "Error al crear la cuenta del cliente."}), 500
@@ -103,11 +103,10 @@ def register():
         return jsonify({"message": "Cliente registrado exitosamente"}), 201
 
     except Exception as e:
-        # Captura cualquier excepción, imprime el traceback y revierte la transacción
         error_message = f"Error en el servidor durante el registro: {str(e)}"
         print(f">>> {error_message}")
-        print(traceback.format_exc()) # Imprime la traza completa del error
-        db.session.rollback() # Revierte cualquier cambio en la base de datos en caso de error
+        print(traceback.format_exc()) 
+        db.session.rollback() 
         return jsonify({"message": error_message}), 500
 
 
@@ -139,7 +138,7 @@ def login():
                 "id": account.id,
                 "account_type": account.account_type,
                 "balance": account.balance,
-                "account_number": account.account_number # Incluir el número de cuenta
+                "account_number": account.account_number 
             }
             for account in accounts
         ]
@@ -158,8 +157,13 @@ def login():
         ]
         print(f">>> Datos de las tarjetas en /login: {json.dumps(cards_data, indent=2)}")
 
-        # Crear un token JWT válido por 1 hora, con el ID del cliente como identidad (convertido a string)
-        access_token = create_access_token(identity=str(client.id), expires_delta=timedelta(hours=1))
+        # Crear un token JWT válido por 1 hora, con el ID del cliente como identidad
+        # y el claim 'is_admin' para el control de acceso de administrador
+        access_token = create_access_token(
+            identity=str(client.id), # Asegúrate de que client.id sea str
+            expires_delta=timedelta(hours=1),
+            additional_claims={"is_admin": client.is_admin} 
+        )
 
         # Construir la respuesta JSON con el token, información del cliente, cuentas y tarjetas
         response_data = jsonify(
@@ -171,6 +175,7 @@ def login():
                     "email": client.email,
                     "phone_number": client.phone_number,
                     "cip": client.cip,
+                    "is_admin": client.is_admin 
                 },
                 "accounts": accounts_data,
                 "cards": cards_data,
@@ -180,7 +185,6 @@ def login():
         return response_data, 200
 
     except Exception as e:
-        # Captura cualquier excepción, imprime el traceback y devuelve un error 500
         error_message = f"Error en el servidor durante el login: {str(e)}"
         print(f">>> {error_message}")
         print(traceback.format_exc())
@@ -195,11 +199,10 @@ def dashboard():
     incluyendo sus datos personales, cuentas y tarjetas.
     """
     try:
-        # Obtiene el ID del cliente desde el token JWT
         client_id = get_jwt_identity()
         print(">>> ID del cliente autenticado:", client_id)
 
-        # Buscar el cliente en la base de datos
+        # Buscar cliente
         client = Client.query.get(client_id)
         if not client:
             print(f">>> Cliente no encontrado con ID: {client_id}")
@@ -214,12 +217,12 @@ def dashboard():
                 "id": account.id,
                 "account_type": account.account_type,
                 "balance": account.balance,
-                "account_number": account.account_number # Incluir el número de cuenta
+                "account_number": account.account_number 
             }
             for account in accounts
         ]
         print(">>> Datos de las cuentas en /dashboard:", json.dumps(accounts_data, indent=2))
-        print(">>> Cuentas (objetos SQLA):", accounts) # Para ver los objetos de SQLAlchemy
+        print(">>> Cuentas (objetos SQLA):", accounts) 
 
         # Traer todas las tarjetas asociadas a este cliente
         cards = Card.query.filter_by(client_id=client.id).all()
@@ -233,7 +236,7 @@ def dashboard():
             for card in cards
         ]
         print(">>> Datos de las tarjetas en /dashboard:", json.dumps(cards_data, indent=2))
-        print(">>> Tarjetas (objetos SQLA):", cards) # Para ver los objetos de SQLAlchemy
+        print(">>> Tarjetas (objetos SQLA):", cards) 
 
         # Retornar los datos del cliente, cuentas y tarjetas en formato JSON
         response_data = jsonify(
@@ -244,6 +247,7 @@ def dashboard():
                     "email": client.email,
                     "phone_number": client.phone_number,
                     "cip": client.cip,
+                    "is_admin": client.is_admin 
                 },
                 "accounts": accounts_data,
                 "cards": cards_data,
@@ -253,8 +257,8 @@ def dashboard():
         return response_data, 200
 
     except Exception as e:
-        # Captura cualquier excepción, imprime el traceback y devuelve un error 500
         error_message = f"Error en el servidor durante el dashboard: {str(e)}"
         print(f">>> {error_message}")
         print(traceback.format_exc())
         return jsonify({"message": error_message}), 500
+
