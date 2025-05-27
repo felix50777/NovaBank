@@ -9,6 +9,7 @@ import Help from "./pages/Help";
 import Dashboard from "./pages/Dashboard";
 import TransferForm from "./pages/TransferForm";
 import PaymentForm from "./pages/PaymentForm";
+import AdminDashboard from './pages/AdminDashboard'; // Asegúrate de que esta ruta sea correcta
 
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute"; // 👈 importamos
@@ -36,6 +37,16 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* <<< CORRECCIÓN AQUÍ: CAMBIADO /admin-dashboard A /admin >>> */}
+          <Route
+            path="/admin" // <--- ¡RUTA CORREGIDA! Ahora coincide con la redirección de Login.jsx
+            element={
+              <PrivateRoute>
+                <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          {/* <<< FIN DE CORRECCIÓN >>> */}
           <Route
             path="/transfer"
             element={

@@ -17,22 +17,20 @@ const AdminDashboard = () => {
 
       if (!token) {
         setError('No hay token de autenticación. Por favor, inicia sesión.');
-        navigate('/login'); // Redirige a la página de login general
+        navigate('/login'); 
         setLoading(false);
         return;
       }
 
       try {
         const decodedToken = jwtDecode(token);
-        // <<< INICIO DE CAMBIO: Usar decodedToken.is_admin directamente >>>
         // Verificar si el usuario es administrador usando el claim 'is_admin' del token
         if (!decodedToken.is_admin) {
           setError('Acceso denegado. Solo administradores pueden ver este panel.');
-          navigate('/dashboard'); // Redirige a un dashboard normal si no es admin
+          navigate('/dashboard'); 
           setLoading(false);
           return;
         }
-        // <<< FIN DE CAMBIO >>>
 
         const response = await fetch('http://localhost:5000/api/admin/accounts', {
           method: 'GET',
@@ -48,13 +46,13 @@ const AdminDashboard = () => {
         }
 
         const data = await response.json();
-        setAccounts(data); // Asume que el backend devuelve un array de objetos de cuenta
+        setAccounts(data); 
       } catch (err) {
         console.error('Error al cargar las cuentas del administrador:', err);
         setError(err.message || 'No se pudieron cargar las cuentas. Intenta de nuevo.');
         if (err.message.includes('token') || err.message.includes('sesión') || err.message.includes('Acceso denegado')) {
           localStorage.removeItem('token');
-          navigate('/login'); // Redirige al login si hay problemas de autenticación
+          navigate('/login'); 
         }
       } finally {
         setLoading(false);
@@ -98,10 +96,10 @@ const AdminDashboard = () => {
                 <tr>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">ID Cuenta</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">ID Cliente</th>
+                  <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Nombre del Cliente</th> {/* <--- ¡NUEVO! */}
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Número de Cuenta</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Tipo de Cuenta</th>
                   <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Balance</th>
-                  {/* <th className="py-3 px-4 text-left text-sm font-semibold uppercase tracking-wider">Acciones</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -109,14 +107,10 @@ const AdminDashboard = () => {
                   <tr key={account.id} className="hover:bg-gray-100 transition duration-150">
                     <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800">{account.id}</td>
                     <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800">{account.client_id}</td>
+                    <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800">{account.client_full_name}</td> {/* <--- ¡NUEVO! */}
                     <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800">{account.account_number}</td>
                     <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800 capitalize">{account.account_type}</td>
                     <td className="py-3 px-4 whitespace-nowrap text-sm text-gray-800 font-medium">${account.balance.toFixed(2)}</td>
-                    {/* Puedes añadir botones de acción aquí (Editar, Eliminar) */}
-                    {/* <td className="py-3 px-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-2">Editar</button>
-                      <button className="text-red-600 hover:text-red-900">Eliminar</button>
-                    </td> */}
                   </tr>
                 ))}
               </tbody>

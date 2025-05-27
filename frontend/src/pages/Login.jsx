@@ -1,6 +1,9 @@
+// frontend/src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
+import { jwtDecode } from "jwt-decode"; // Importa jwtDecode
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -21,19 +24,29 @@ const Login = () => {
       localStorage.removeItem("user");
 
       // Login API
-      const data = await login({ email, password });
+      const data = await login({ email, password }); // Envía email y password como objeto
 
       // Guarda sesión
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(data.client)); // Guarda el objeto cliente
 
       console.log("Login exitoso:", data);
 
-      // Redirige
-      navigate("/dashboard");
+      // Decodificar el token para obtener los claims (incluido is_admin)
+      // Aunque data.client ya tiene is_admin, decodificar el token es la fuente más autoritativa
+      const decodedToken = jwtDecode(data.token);
+      console.log("Token decodificado en Login:", decodedToken);
+
+      // ✅ Redirige condicionalmente usando el claim is_admin del token
+      if (decodedToken.is_admin) { // Usa el claim del token para la verificación
+        navigate("/admin"); // <--- ¡CORRECCIÓN AQUÍ! Redirige a /admin
+      } else {
+        navigate("/dashboard"); // Redirige al dashboard normal del cliente
+      }
     } catch (error) {
-      console.error(error);
-      const msg = error.response?.data?.message || "Credenciales incorrectas";
+      console.error("Error durante el login:", error);
+      // El error ya viene de authService.js con un mensaje, lo usamos directamente
+      const msg = error.message || "Credenciales incorrectas";
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -58,7 +71,7 @@ const Login = () => {
               Correo electrónico
             </label>
             <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-400">
-              <span className="mr-2 text-gray-400">👤</span>
+              <span className="mr-2 text-gray-400">📧</span>
               <input
                 type="email"
                 id="email"
@@ -107,8 +120,6 @@ const Login = () => {
       </div>
     </div>
   );
-  
 };
-
 
 export default Login;

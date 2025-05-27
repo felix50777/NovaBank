@@ -6,7 +6,7 @@ from .config import Config
 from backend.database.models import db
 from flask_bcrypt import Bcrypt
 from backend.routes.auth_routes import auth_bp
-from backend.routes.transaction_routes import transaction_bp
+from backend.routes.admin_routes import admin_bp # <--- ¡IMPORTA admin_bp!
 
 # Inicialización de extensiones
 bcrypt = Bcrypt()
@@ -33,8 +33,10 @@ def create_app():
 
     # Registrar rutas
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    print("Blueprint auth_bp registrado con el prefijo /api/auth")  # Agrega esta línea
-    app.register_blueprint(transaction_bp)
+    print("Blueprint auth_bp registrado con el prefijo /api/auth") 
+
+    app.register_blueprint(admin_bp, url_prefix="/api/admin") # <--- ¡REGISTRA admin_bp!
+    print("Blueprint admin_bp registrado con el prefijo /api/admin") # Log para verificar
 
     return app
 

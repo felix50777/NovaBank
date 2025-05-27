@@ -45,7 +45,7 @@ def register():
         cip = data.get("cip", "").strip()
         password = data.get("password", "").strip()
         
-        # <<< INICIO DE REVERSIÓN >>>
+        # <<< INICIO DE REVERSIÓN - ESTO DEBE ESTAR COMENTADO O ELIMINADO >>>
         # Se elimina la lógica temporal de is_admin_request
         # is_admin_request = data.get("is_admin", False) 
         # <<< FIN DE REVERSIÓN >>>
@@ -162,7 +162,7 @@ def login():
         access_token = create_access_token(
             identity=str(client.id), # Asegúrate de que client.id sea str
             expires_delta=timedelta(hours=1),
-            additional_claims={"is_admin": client.is_admin} 
+            additional_claims={"is_admin": client.is_admin} # <--- Incluye is_admin en el token
         )
 
         # Construir la respuesta JSON con el token, información del cliente, cuentas y tarjetas
@@ -175,7 +175,7 @@ def login():
                     "email": client.email,
                     "phone_number": client.phone_number,
                     "cip": client.cip,
-                    "is_admin": client.is_admin 
+                    "is_admin": client.is_admin # <--- Incluye is_admin en la respuesta del cliente
                 },
                 "accounts": accounts_data,
                 "cards": cards_data,
@@ -247,7 +247,7 @@ def dashboard():
                     "email": client.email,
                     "phone_number": client.phone_number,
                     "cip": client.cip,
-                    "is_admin": client.is_admin 
+                    "is_admin": client.is_admin # <--- Incluye is_admin en la respuesta del dashboard
                 },
                 "accounts": accounts_data,
                 "cards": cards_data,
@@ -262,3 +262,70 @@ def dashboard():
         print(traceback.format_exc())
         return jsonify({"message": error_message}), 500
 
+# <<< INICIO DE CAMBIO: SE ELIMINA ESTA RUTA DE auth_routes.py >>>
+# @auth_bp.route("/admin/all_clients", methods=["GET"])
+# @jwt_required()
+# def get_all_clients_data():
+#     """
+#     Ruta solo para administradores: obtiene todos los clientes,
+#     junto con sus cuentas y tarjetas.
+#     """
+#     try:
+#         current_user_id = get_jwt_identity()
+#         current_client = Client.query.get(current_user_id)
+
+#         if not current_client or not current_client.is_admin:
+#             print(f">>> Acceso no autorizado por el usuario ID: {current_user_id}")
+#             return jsonify({"message": "Acceso no autorizado"}), 403
+
+#         print(">>> Usuario administrador validado, recuperando todos los clientes.")
+
+#         all_clients = Client.query.all()
+#         clients_data = []
+
+#         for client in all_clients:
+#             accounts = Account.query.filter_by(client_id=client.id).all()
+#             accounts_data = [
+#                 {
+#                     "id": account.id,
+#                     "account_type": account.account_type,
+#                     "balance": account.balance,
+#                     "account_number": account.account_number,
+#                 }
+#                 for account in accounts
+#             ]
+
+#             cards = Card.query.filter_by(client_id=client.id).all()
+#             cards_data = [
+#                 {
+#                     "id": card.id,
+#                     "card_type": card.card_type,
+#                     "card_number": card.card_number,
+#                     "provider": card.provider,
+#                 }
+#                 for card in cards
+#             ]
+
+#             client_data = {
+#                 "id": client.id,
+#                 "full_name": client.full_name,
+#                 "email": client.email,
+#                 "phone_number": client.phone_number,
+#                 "cip": client.cip,
+#                 "is_admin": client.is_admin,
+#                 "accounts": accounts_data,
+#                 "cards": cards_data,
+#             }
+
+#             clients_data.append(client_data)
+
+#         print(f">>> Total de clientes recuperados: {len(clients_data)}")
+
+#         return jsonify({"clients": clients_data}), 200
+
+#     except Exception as e:
+#         error_message = f"Error en el servidor al obtener todos los clientes: {str(e)}"
+#         print(f">>> {error_message}")
+#         print(traceback.format_exc())
+#         return jsonify({"message": error_message}), 500
+# <<< FIN DE CAMBIO: SE ELIMINA ESTA RUTA DE auth_routes.py >>>
